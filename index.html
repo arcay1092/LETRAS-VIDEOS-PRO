@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Produciendo con Genaro</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Orbitron&family=Bebas+Neue&family=Oswald&family=Montserrat&family=Cinzel&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+margin:0;
+background:#0f172a;
+color:white;
+font-family:Montserrat;
+}
+
+.app{
+max-width:1200px;
+margin:auto;
+padding:15px;
+}
+
+.panel{
+background:#1e293b;
+padding:15px;
+border-radius:15px;
+}
+
+input, select{
+width:100%;
+padding:10px;
+margin:6px 0;
+border-radius:10px;
+border:none;
+}
+
+/* GRID RESPONSIVE */
+.grid{
+display:grid;
+grid-template-columns:repeat(6,1fr);
+gap:8px;
+}
+
+@media(max-width:768px){
+.grid{
+grid-template-columns:repeat(3,1fr);
+}
+}
+
+.card{
+aspect-ratio:1;
+background-size:cover;
+background-position:center;
+border-radius:10px;
+cursor:pointer;
+display:flex;
+align-items:end;
+justify-content:center;
+font-size:12px;
+padding:3px;
+background-blend-mode:darken;
+color:white;
+}
+
+.card.active{
+outline:3px solid #38bdf8;
+}
+
+/* CANVAS */
+canvas{
+width:100%;
+margin-top:15px;
+border-radius:10px;
+}
+
+/* OVERLAY */
+.overlay{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:40px;
+pointer-events:none;
+opacity:0;
+transition:0.3s;
+}
+
+.show{
+opacity:1;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<h2>🔥 Produciendo con Genaro</h2>
+
+<div class="panel">
+
+<input id="text" placeholder="Escribe tu texto">
+
+<select id="font">
+<option>Anton</option>
+<option>Orbitron</option>
+<option>Bebas Neue</option>
+<option>Oswald</option>
+<option>Montserrat</option>
+<option>Cinzel</option>
+</select>
+
+<label><input type="checkbox" id="useStroke"> Borde</label>
+<input type="color" id="strokeColor" value="#000000">
+<input type="range" id="strokeSize" min="0" max="20" value="5">
+
+<label><input type="checkbox" id="useShadow"> Sombra</label>
+<input type="range" id="shadowBlur" min="0" max="80" value="30">
+
+<div class="grid" id="gallery"></div>
+
+<button onclick="download()">Descargar PNG</button>
+
+</div>
+
+<canvas id="canvas"></canvas>
+
+</div>
+
+<script>
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let selected = 1;
+
+// GENERAR GALERÍA 1-100
+function loadGallery(){
+let g=document.getElementById("gallery");
+
+for(let i=1;i<=100;i++){
+let div=document.createElement("div");
+div.className="card";
+div.style.backgroundImage=`url(${i}.jpg)`;
+div.innerText=i;
+
+div.onclick=()=>{
+selected=i;
+render();
+
+document.querySelectorAll(".card").forEach(e=>e.classList.remove("active"));
+div.classList.add("active");
+
+showOverlay(i);
+};
+
+g.appendChild(div);
+}
+}
+
+// OVERLAY 3 SEGUNDOS
+function showOverlay(num){
+let overlay=document.createElement("div");
+overlay.className="overlay show";
+overlay.innerText="Textura "+num;
+
+document.body.appendChild(overlay);
+
+setTimeout(()=>{
+overlay.remove();
+},3000);
+}
+
+// COLOR PROMEDIO
+function getAverageColor(img){
+let c=document.createElement("canvas");
+let x=c.getContext("2d");
+c.width=50;
+c.height=50;
+x.drawImage(img,0,0,50,50);
+let data=x.getImageData(0,0,50,50).data;
+
+let r=0,g=0,b=0;
+
+for(let i=0;i<data.length;i+=4){
+r+=data[i];
+g+=data[i+1];
+b+=data[i+2];
+}
+
+let total=data.length/4;
+return `rgb(${r/total},${g/total},${b/total})`;
+}
+
+// RENDER
+function draw(ctx, transparent=false){
+
+let text=document.getElementById("text").value||"Genaro";
+let font=document.getElementById("font").value;
+let useStroke=document.getElementById("useStroke").checked;
+let strokeColor=document.getElementById("strokeColor").value;
+let strokeSize=document.getElementById("strokeSize").value;
+let useShadow=document.getElementById("useShadow").checked;
+let shadowBlur=document.getElementById("shadowBlur").value;
+
+ctx.clearRect(0,0,1200,400);
+
+// fondo preview
+if(!transparent){
+ctx.fillStyle="#000";
+ctx.fillRect(0,0,1200,400);
+}
+
+let img=new Image();
+img.src=selected+".jpg";
+
+img.onload=()=>{
+
+// textura
+ctx.drawImage(img,0,0,1200,400);
+
+// máscara
+ctx.globalCompositeOperation="destination-in";
+ctx.fillStyle="#fff";
+ctx.font="bold 120px "+font;
+ctx.textAlign="center";
+ctx.fillText(text,600,220);
+
+ctx.globalCompositeOperation="source-over";
+
+// sombra automática
+if(useShadow){
+ctx.shadowColor=getAverageColor(img);
+ctx.shadowBlur=shadowBlur;
+}
+
+// borde
+if(useStroke){
+ctx.lineWidth=strokeSize;
+ctx.strokeStyle=strokeColor;
+ctx.strokeText(text,600,220);
+}
+
+};
+
+}
+
+function render(){
+canvas.width=1200;
+canvas.height=400;
+draw(ctx,false);
+}
+
+// DESCARGA
+function download(){
+
+let temp=document.createElement("canvas");
+let tctx=temp.getContext("2d");
+
+temp.width=1200;
+temp.height=400;
+
+draw(tctx,true);
+
+setTimeout(()=>{
+
+let text=document.getElementById("text").value||"GEN";
+let name=text.substring(0,3).toUpperCase()+"_"+selected+".png";
+
+let link=document.createElement("a");
+link.download=name;
+link.href=temp.toDataURL("image/png");
+link.click();
+
+render();
+
+},400);
+}
+
+// EVENTOS
+["text","font","useStroke","strokeColor","strokeSize","useShadow","shadowBlur"]
+.forEach(id=>{
+document.getElementById(id).addEventListener("input",render);
+});
+
+loadGallery();
+render();
+
+</script>
+
+</body>
+</html>
