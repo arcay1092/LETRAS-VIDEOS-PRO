@@ -5,124 +5,76 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Produciendo con Genaro</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Orbitron&family=Bebas+Neue&family=Oswald&family=Montserrat&family=Cinzel&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Orbitron&family=Bebas+Neue&family=Cinzel&family=Great+Vibes&family=Pacifico&family=Sacramento&family=Dancing+Script&family=Allura&family=Satisfy&family=Playfair+Display&family=Oswald&family=Montserrat&family=Black+Ops+One&family=Press+Start+2P&family=Permanent+Marker&family=Rubik+Mono+One&family=Caveat&family=Indie+Flower&family=Shadows+Into+Light&family=Kaushan+Script&family=Yellowtail&family=Parisienne&family=Alex+Brush&display=swap" rel="stylesheet">
 
 <style>
+body{margin:0;background:#0f172a;color:#fff;font-family:Montserrat;}
+.app{max-width:1200px;margin:auto;padding:10px;}
+.panel{background:#1e293b;padding:15px;border-radius:15px;}
 
-body{
-margin:0;
-background:#0f172a;
-color:white;
-font-family:Montserrat;
-}
+input,select{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:none;}
+button{padding:10px;border:none;border-radius:10px;background:#38bdf8;color:#000;font-weight:bold;margin-top:8px;cursor:pointer;}
 
-.app{
-max-width:1200px;
-margin:auto;
-padding:15px;
-}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+@media(max-width:768px){.grid{grid-template-columns:repeat(3,1fr);}}
 
-.panel{
-background:#1e293b;
-padding:15px;
-border-radius:15px;
-}
+.card{aspect-ratio:1;background-size:cover;border-radius:8px;cursor:pointer;font-size:10px;display:flex;align-items:end;justify-content:center;}
+.card.active{outline:2px solid cyan;}
 
-input, select{
-width:100%;
-padding:10px;
-margin:6px 0;
-border-radius:10px;
-border:none;
-}
+canvas{width:100%;margin-top:10px;border-radius:10px;}
 
-/* GRID RESPONSIVE */
-.grid{
-display:grid;
-grid-template-columns:repeat(6,1fr);
-gap:8px;
-}
+.hidden{display:none;}
+.palette{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px;}
+.colorItem{height:36px;border-radius:6px;cursor:pointer;}
 
-@media(max-width:768px){
-.grid{
-grid-template-columns:repeat(3,1fr);
-}
-}
-
-.card{
-aspect-ratio:1;
-background-size:cover;
-background-position:center;
-border-radius:10px;
-cursor:pointer;
-display:flex;
-align-items:end;
-justify-content:center;
-font-size:12px;
-padding:3px;
-background-blend-mode:darken;
-color:white;
-}
-
-.card.active{
-outline:3px solid #38bdf8;
-}
-
-/* CANVAS */
-canvas{
-width:100%;
-margin-top:15px;
-border-radius:10px;
-}
-
-/* OVERLAY */
-.overlay{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-font-size:40px;
-pointer-events:none;
-opacity:0;
-transition:0.3s;
-}
-
-.show{
-opacity:1;
-}
-
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.small{font-size:12px;opacity:.8}
 </style>
 </head>
 
 <body>
-
 <div class="app">
 
 <h2>🔥 Produciendo con Genaro</h2>
 
 <div class="panel">
 
-<input id="text" placeholder="Escribe tu texto">
+<input id="text" placeholder="Texto">
 
-<select id="font">
-<option>Anton</option>
-<option>Orbitron</option>
-<option>Bebas Neue</option>
-<option>Oswald</option>
-<option>Montserrat</option>
-<option>Cinzel</option>
-</select>
+<select id="font"></select>
 
-<label><input type="checkbox" id="useStroke"> Borde</label>
-<input type="color" id="strokeColor" value="#000000">
-<input type="range" id="strokeSize" min="0" max="20" value="5">
+<div class="row">
+  <label><input type="checkbox" id="useColor"> Usar color neón</label>
+  <label><input type="checkbox" id="useGold"> Oro brillante</label>
+</div>
 
-<label><input type="checkbox" id="useShadow"> Sombra</label>
-<input type="range" id="shadowBlur" min="0" max="80" value="30">
+<div class="row">
+  <label><input type="checkbox" id="useNeonGlow"> Glow neón</label>
+  <label><input type="checkbox" id="useGlitch"> Glitch neón</label>
+</div>
 
-<div class="grid" id="gallery"></div>
+<button onclick="toggleColors()">Colores Neón</button>
+<div id="colors" class="palette hidden"></div>
 
-<button onclick="download()">Descargar PNG</button>
+<label>Sombra (%)</label>
+<div class="row">
+  <input type="number" id="shadowInput" value="40">
+  <input type="range" id="shadow" min="0" max="100" value="40">
+</div>
+
+<label>Borde (%)</label>
+<div class="row">
+  <input type="number" id="strokeInput" value="0">
+  <input type="range" id="stroke" min="0" max="100" value="0">
+</div>
+
+<button onclick="toggleStrokeColors()">Colores Borde</button>
+<div id="strokeColors" class="palette hidden"></div>
+
+<button onclick="toggleGallery()">Texturas</button>
+<div id="gallery" class="grid hidden"></div>
+
+<button onclick="download()">Descargar PNG (4K)</button>
 
 </div>
 
@@ -132,164 +84,256 @@ opacity:1;
 
 <script>
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+// ===== FUENTES =====
+const fonts=["Anton","Orbitron","Bebas Neue","Cinzel","Great Vibes","Pacifico","Sacramento","Dancing Script","Allura","Satisfy","Playfair Display","Oswald","Montserrat","Black Ops One","Press Start 2P","Permanent Marker","Rubik Mono One","Caveat","Indie Flower","Shadows Into Light","Kaushan Script","Yellowtail","Parisienne","Alex Brush"];
+const fontSelect=document.getElementById("font");
+fonts.forEach(f=>{let o=document.createElement("option");o.text=f;fontSelect.add(o);});
 
-let selected = 1;
+// ===== COLORES =====
+const neon=["#00f0ff","#ff00ff","#00ff88","#ff2200","#ffff00","#ff8800","#ffffff"];
+let selectedColor="#00f0ff";
+let strokeColor="#000";
 
-// GENERAR GALERÍA 1-100
+const colorBox=document.getElementById("colors");
+const strokeBox=document.getElementById("strokeColors");
+
+neon.forEach(c=>{
+let d=document.createElement("div");
+d.className="colorItem";
+d.style.background=c;
+d.onclick=()=>{
+selectedColor=c;
+useColor.checked=true;
+useGold.checked=false; // 🔥 FIX
+render();
+};
+colorBox.appendChild(d);
+
+let d2=document.createElement("div");
+d2.className="colorItem";
+d2.style.background=c;
+d2.onclick=()=>{strokeColor=c;render();}
+strokeBox.appendChild(d2);
+});
+
+function toggleColors(){colorBox.classList.toggle("hidden");}
+function toggleStrokeColors(){strokeBox.classList.toggle("hidden");}
+
+// ===== TEXTURAS =====
+let selected=1;
+let img=new Image();
+img.src="1.jpg";
+
 function loadGallery(){
 let g=document.getElementById("gallery");
-
 for(let i=1;i<=100;i++){
-let div=document.createElement("div");
-div.className="card";
-div.style.backgroundImage=`url(${i}.jpg)`;
-div.innerText=i;
-
-div.onclick=()=>{
+let d=document.createElement("div");
+d.className="card";
+d.style.backgroundImage=`url(${i}.jpg)`;
+d.innerText=i;
+d.onclick=()=>{
 selected=i;
+img.src=i+".jpg";
+useColor.checked=false; // 🔥 FIX
+useGold.checked=false;  // 🔥 FIX
 render();
-
 document.querySelectorAll(".card").forEach(e=>e.classList.remove("active"));
-div.classList.add("active");
-
-showOverlay(i);
+d.classList.add("active");
 };
-
-g.appendChild(div);
+g.appendChild(d);
 }
 }
 
-// OVERLAY 3 SEGUNDOS
-function showOverlay(num){
-let overlay=document.createElement("div");
-overlay.className="overlay show";
-overlay.innerText="Textura "+num;
-
-document.body.appendChild(overlay);
-
-setTimeout(()=>{
-overlay.remove();
-},3000);
+function toggleGallery(){
+document.getElementById("gallery").classList.toggle("hidden");
 }
 
-// COLOR PROMEDIO
-function getAverageColor(img){
-let c=document.createElement("canvas");
-let x=c.getContext("2d");
-c.width=50;
-c.height=50;
-x.drawImage(img,0,0,50,50);
-let data=x.getImageData(0,0,50,50).data;
+// ===== CANVAS =====
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
 
-let r=0,g=0,b=0;
-
-for(let i=0;i<data.length;i+=4){
-r+=data[i];
-g+=data[i+1];
-b+=data[i+2];
+function fit(text,font){
+ctx.font="220px "+font;
+let w=ctx.measureText(text).width;
+return w>3000 ? 3000/w : 1;
 }
 
-let total=data.length/4;
-return `rgb(${r/total},${g/total},${b/total})`;
+function goldGradient(ctx){
+const g=ctx.createLinearGradient(0,0,0,400);
+g.addColorStop(0,"#fff6b7");
+g.addColorStop(.25,"#ffd700");
+g.addColorStop(.5,"#ffb300");
+g.addColorStop(.75,"#fff2a6");
+g.addColorStop(1,"#c99700");
+return g;
 }
 
-// RENDER
-function draw(ctx, transparent=false){
+// ===== RENDER =====
+async function render(){
 
-let text=document.getElementById("text").value||"Genaro";
-let font=document.getElementById("font").value;
-let useStroke=document.getElementById("useStroke").checked;
-let strokeColor=document.getElementById("strokeColor").value;
-let strokeSize=document.getElementById("strokeSize").value;
-let useShadow=document.getElementById("useShadow").checked;
-let shadowBlur=document.getElementById("shadowBlur").value;
+await document.fonts.load("220px "+fontSelect.value);
 
-ctx.clearRect(0,0,1200,400);
+canvas.width=3840;
+canvas.height=1280;
 
-// fondo preview
-if(!transparent){
+ctx.setTransform(1,0,0,1,0,0);
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
 ctx.fillStyle="#000";
-ctx.fillRect(0,0,1200,400);
-}
+ctx.fillRect(0,0,canvas.width,canvas.height);
 
-let img=new Image();
-img.src=selected+".jpg";
+let scale=fit(text.value||"Genaro",fontSelect.value);
+ctx.setTransform(scale,0,0,scale,0,0);
 
-img.onload=()=>{
-
-// textura
-ctx.drawImage(img,0,0,1200,400);
-
-// máscara
-ctx.globalCompositeOperation="destination-in";
-ctx.fillStyle="#fff";
-ctx.font="bold 120px "+font;
+ctx.font="bold 220px "+fontSelect.value;
 ctx.textAlign="center";
-ctx.fillText(text,600,220);
 
-ctx.globalCompositeOperation="source-over";
+let x=(canvas.width/2)/scale;
+let y=(canvas.height/2)/scale + 40;
 
-// sombra automática
-if(useShadow){
-ctx.shadowColor=getAverageColor(img);
-ctx.shadowBlur=shadowBlur;
+let fill;
+if(useGold.checked){
+fill=goldGradient(ctx);
+}else if(useColor.checked){
+fill=selectedColor;
+}else{
+fill=ctx.createPattern(img,"repeat");
 }
 
-// borde
-if(useStroke){
-ctx.lineWidth=strokeSize;
+let s=shadow.value/100;
+ctx.shadowColor = useColor.checked ? selectedColor : "#000";
+ctx.shadowBlur = 120*s;
+
+if(useNeonGlow.checked){
+ctx.shadowBlur = 200*s;
+ctx.fillStyle = fill;
+ctx.fillText(text.value||"Genaro",x,y);
+ctx.shadowBlur = 120*s;
+}
+
+if(useGlitch.checked){
+ctx.fillStyle="red"; ctx.fillText(text.value||"Genaro",x+6,y);
+ctx.fillStyle="cyan"; ctx.fillText(text.value||"Genaro",x-6,y);
+}
+
+ctx.fillStyle=fill;
+ctx.fillText(text.value||"Genaro",x,y);
+
+ctx.shadowBlur=0;
+let st=stroke.value/100;
+if(st>0){
+ctx.lineWidth=30*st;
 ctx.strokeStyle=strokeColor;
-ctx.strokeText(text,600,220);
+ctx.strokeText(text.value||"Genaro",x,y);
 }
 
-};
-
 }
 
-function render(){
-canvas.width=1200;
-canvas.height=400;
-draw(ctx,false);
-}
-
-// DESCARGA
+// ===== DESCARGA MEJORADA =====
 function download(){
 
-let temp=document.createElement("canvas");
-let tctx=temp.getContext("2d");
+const textVal=(text.value||"GEN").replace(/\s+/g,"_").toUpperCase();
+const name=textVal+"_"+selected+".png";
 
-temp.width=1200;
-temp.height=400;
+const temp=document.createElement("canvas");
+const tctx=temp.getContext("2d");
 
-draw(tctx,true);
+temp.width=3840;
+temp.height=1280;
 
-setTimeout(()=>{
+tctx.clearRect(0,0,temp.width,temp.height);
 
-let text=document.getElementById("text").value||"GEN";
-let name=text.substring(0,3).toUpperCase()+"_"+selected+".png";
+// 🔥 MÁS GRANDE (96%)
+let baseSize = 500;
+tctx.font = "bold " + baseSize + "px " + fontSelect.value;
+tctx.textAlign = "center";
+
+let w = tctx.measureText(text.value||"Genaro").width;
+let maxW = temp.width * 0.96;
+
+let finalSize = baseSize;
+if(w > maxW){
+finalSize = baseSize * (maxW / w);
+}
+
+tctx.font = "bold " + finalSize + "px " + fontSelect.value;
+
+let x = temp.width / 2;
+let y = temp.height / 2 + finalSize * 0.35;
+
+let fill;
+if(useGold.checked){
+fill=goldGradient(tctx);
+}else if(useColor.checked){
+fill=selectedColor;
+}else{
+fill=tctx.createPattern(img,"repeat");
+}
+
+let s=shadow.value/100;
+tctx.shadowColor = useColor.checked ? selectedColor : "#000";
+tctx.shadowBlur = 150*s;
+
+if(useNeonGlow.checked){
+tctx.shadowBlur = 250*s;
+tctx.fillStyle = fill;
+tctx.fillText(text.value||"Genaro",x,y);
+tctx.shadowBlur = 150*s;
+}
+
+if(useGlitch.checked){
+tctx.fillStyle="red"; tctx.fillText(text.value||"Genaro",x+8,y);
+tctx.fillStyle="cyan"; tctx.fillText(text.value||"Genaro",x-8,y);
+}
+
+tctx.fillStyle=fill;
+tctx.fillText(text.value||"Genaro",x,y);
+
+tctx.shadowBlur=0;
+let st=stroke.value/100;
+if(st>0){
+tctx.lineWidth=40*st;
+tctx.strokeStyle=strokeColor;
+tctx.strokeText(text.value||"Genaro",x,y);
+}
 
 let link=document.createElement("a");
 link.download=name;
-link.href=temp.toDataURL("image/png");
+link.href=temp.toDataURL("image/png",1.0);
 link.click();
-
-render();
-
-},400);
 }
 
-// EVENTOS
-["text","font","useStroke","strokeColor","strokeSize","useShadow","shadowBlur"]
-.forEach(id=>{
-document.getElementById(id).addEventListener("input",render);
+// ===== EVENTOS =====
+const textInput=document.getElementById("text");
+const useColor=document.getElementById("useColor");
+const useGold=document.getElementById("useGold");
+const useNeonGlow=document.getElementById("useNeonGlow");
+const useGlitch=document.getElementById("useGlitch");
+const shadow=document.getElementById("shadow");
+const stroke=document.getElementById("stroke");
+const shadowInput=document.getElementById("shadowInput");
+const strokeInput=document.getElementById("strokeInput");
+
+["input","change"].forEach(ev=>{
+textInput.addEventListener(ev,render);
+fontSelect.addEventListener(ev,render);
+useColor.addEventListener(ev,render);
+useGold.addEventListener(ev,render);
+useNeonGlow.addEventListener(ev,render);
+useGlitch.addEventListener(ev,render);
+shadow.addEventListener(ev,render);
+stroke.addEventListener(ev,render);
 });
 
+shadowInput.oninput=e=>{shadow.value=e.target.value;render();}
+shadow.oninput=e=>{shadowInput.value=e.target.value;render();}
+strokeInput.oninput=e=>{stroke.value=e.target.value;render();}
+stroke.oninput=e=>{strokeInput.value=e.target.value;render();}
+
+img.onload=render;
 loadGallery();
 render();
 
 </script>
-
 </body>
 </html>
